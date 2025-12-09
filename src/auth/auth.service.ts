@@ -1,76 +1,50 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+  ) {}
 
-  async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
-
-    // Check if user exists
-    let user = await this.prisma.user.findUnique({
-      where: { email },
+  // SIGNUP
+  async register(dto: RegisterDto) {
+    const userExists = await this.prisma.user.findUnique({
+      where: { email: dto.email },
     });
 
-    // If user doesn't exist, create a new one
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          password, // Store password as plain text (simple setup)
-        },
-      });
-    }
+    if (userExists) throw new UnauthorizedException("User already exists");
 
-    // Return user data (excluding password)
-    const { password: _, ...userWithoutPassword } = user;
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        name: dto.name,
+        password: dto.password, // In production, hash the password before saving
+      },
+    });
+
+    return {
+      message: 'User registered successfully',
+      access_token: this.jwt.sign({ email: user.email, sub: user.id }),
+    };
+  }
+
+  // LOGIN
+  async login(dto: LoginDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user || user.password !== dto.password)
+      throw new UnauthorizedException("Invalid email or password");
 
     return {
       message: 'Login successful',
-      user: userWithoutPassword,
-    };
-  }
-
-  async getAllUsers() {
-    const users = await this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    return {
-      message: 'Users retrieved successfully',
-      count: users.length,
-      users,
-    };
-  }
-
-  async getUserById(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    return {
-      message: 'User retrieved successfully',
-      user,
+      access_token: this.jwt.sign({ email: user.email, sub: user.id }),
     };
   }
 }
