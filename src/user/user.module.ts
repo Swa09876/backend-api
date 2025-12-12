@@ -1,8 +1,6 @@
-// src/profile/profile.module.ts
-
 import { Module } from '@nestjs/common';
-import { ProfileService } from './profile.service';
-import { ProfileController } from './profile.controller';
+import { UserService } from './user.service';
+import { UserController } from './user.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -13,7 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  controllers: [ProfileController],
-  providers: [ProfileService, PrismaService],
+  controllers: [UserController],
+  providers: [UserService, PrismaService],
 })
-export class ProfileModule {}
+export class UserModule {}

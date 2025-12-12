@@ -1,25 +1,21 @@
-// src/profile/profile.service.ts
-
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
-import {
-  RegisterProfileDto,
-  UpdateProfileDto,
-} from './dto/profile.dto';
+import * as bcrypt from 'bcryptjs';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
-export class ProfileService {
+export class UserService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
 
-  async register(data: RegisterProfileDto) {
+  async register(data: CreateUserDto) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    return this.prisma.profile.create({
+    return this.prisma.user.create({
       data: {
         fullname: data.fullname,
         email: data.email,
@@ -36,29 +32,33 @@ export class ProfileService {
   }
 
   async login(email: string, password: string) {
-    const profile = await this.prisma.profile.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
-    if (!profile) throw new UnauthorizedException('Profile not found');
+    if (!user) throw new UnauthorizedException('User not found');
 
-    const correct = await bcrypt.compare(password, profile.password);
-    if (!correct) throw new UnauthorizedException('Invalid password');
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) throw new UnauthorizedException('Invalid password');
 
     const token = this.jwtService.sign({
-      id: profile.id,
-      role: profile.role,
+      id: user.id,
+      role: user.role,
     });
 
-    return { token, profile };
+    return { token, user };
   }
 
-  async updateProfile(id: string, data: UpdateProfileDto) {
+  async getUserById(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
+  async updateUser(id: string, data: UpdateUserDto) {
     if (data.password) {
       data.password = await bcrypt.hash(data.password, 10);
     }
 
-    return this.prisma.profile.update({
+    return this.prisma.user.update({
       where: { id },
       data,
     });
