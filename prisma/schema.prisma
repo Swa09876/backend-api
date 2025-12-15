@@ -10,89 +10,99 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  student
-  recruiter
-}
-
-enum ApplicationStatus {
-  pending
-  accepted
-  rejected
-}
-
+// ------------------------------------------------
+//  USER MODEL
+// ------------------------------------------------
 model User {
-  id                        String        @id @default(auto()) @map("_id") @db.ObjectId
-  fullname                  String
-  email                     String        @unique
-  phoneNumber               String
-  password                  String
-  role                      Role          @default(student)
-  profileBio                String?
-  profileSkills             String[]
-  profileResume             String?
-  profileResumeOriginalName String?
-  profileCompanyId          String?       @db.ObjectId
-  profilePhoto              String        @default("")
-  createdAt                 DateTime      @default(now())
-  updatedAt                 DateTime      @updatedAt
-  Company                   Company[]
-  Application               Application[]
-  Favorite                  Favorite[]
-  Job                       Job[]
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  role      UserRole @default(USER)     // USER | RECRUITER | ADMIN
+  skills    String[]                    // simple skill array
+  resumeUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]             // relation
 }
 
-model Job {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  title           String
-  description     String
-  requirements    String[]
-  salary          Float
-  location        String
-  jobType         String
-  experienceLevel String
-  position        Int
-  companyId       String        @db.ObjectId
-  company         Company       @relation(fields: [companyId], references: [id])
-  createdById     String        @db.ObjectId
-  user            User          @relation(fields: [createdById], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  applications    Application[]
-  Favorite        Favorite[]
+enum UserRole {
+  USER
+  RECRUITER
+  ADMIN
 }
 
+// ------------------------------------------------
+//  COMPANY MODEL
+// ------------------------------------------------
 model Company {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
   description String?
   website     String?
   location    String?
-  logo        String?
-  userId      String   @db.ObjectId
-  user        User     @relation(fields: [userId], references: [id])
+  logoUrl     String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  Job         Job[]
+
+  jobs        Job[]                   // relation
 }
 
+// ------------------------------------------------
+//  JOB MODEL
+// ------------------------------------------------
+model Job {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  location      String
+  skills        String[]
+  jobType       JobType
+
+  salaryFrom    Int?
+  salaryTo      Int?
+  experienceMin Int?
+  experienceMax Int?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  companyId     String   @db.ObjectId
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  applications  Application[]         // relation
+}
+
+enum JobType {
+  FULLTIME
+  PARTTIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+// ------------------------------------------------
+//  APPLICATION MODEL
+// ------------------------------------------------
 model Application {
-  id          String            @id @default(auto()) @map("_id") @db.ObjectId
-  applicantId String            @db.ObjectId
-  applicant   User              @relation(fields: [applicantId], references: [id])
-  jobId       String            @db.ObjectId
-  job         Job               @relation(fields: [jobId], references: [id])
-  status      ApplicationStatus @default(pending)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  id        String               @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String               @db.ObjectId
+  jobId     String               @db.ObjectId
+  status    ApplicationStatus    @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+  job       Job  @relation(fields: [jobId], references: [id])
 }
 
-model Favorite {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  jobId     String   @db.ObjectId
-  job       Job      @relation(fields: [jobId], references: [id])
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  SELECTED
+  REJECTED
 }
