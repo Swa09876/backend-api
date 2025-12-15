@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { UsersModule } from './users/users.module';
 import { CompanyModule } from './company/company.module';
+import { JobsModule } from './jobs/jobs.module';
 
 
 @Module({
@@ -17,6 +18,7 @@ import { CompanyModule } from './company/company.module';
     PrismaModule,
     UsersModule,
     CompanyModule,
+    JobsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
